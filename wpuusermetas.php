@@ -3,7 +3,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.3.1
+Version: 0.3.2
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -59,6 +59,10 @@ class WPUUserMetas {
     /* Update */
 
     function update_user_meta( $user_id ) {
+        if ( ! isset( $_POST['nonce_form-usermetas'] ) || ! wp_verify_nonce( $_POST['nonce_form-usermetas'], 'form-usermetas-'.$user_id ) ) {
+            echo __( 'Sorry, your nonce did not verify.' );
+            exit;
+        }
         $this->get_datas();
         foreach ( $this->fields as $id_field => $field ) {
             $new_value = '';
@@ -80,6 +84,7 @@ class WPUUserMetas {
 
     function display_form( $user ) {
         $this->get_datas();
+        wp_nonce_field( 'form-usermetas-'.$user->ID, 'nonce_form-usermetas' );
         foreach ( $this->sections as $id => $section ) {
             echo $this->display_section( $user, $id, $section['name'] );
         }
