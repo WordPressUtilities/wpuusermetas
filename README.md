@@ -42,6 +42,7 @@ Fields parameters :
 * "section" : String (required) / Set this field in a particular section.
 * "name" : String (optional) / Adds a label to the field administration. Default to ID value.
 * "type" : String (optional) / Set a kind of form field. Default to "text".
+* "datas" : Array (optional) / Set datas for a select field. Default to array(0,1)
 
 Fields types :
 ---
@@ -49,3 +50,4 @@ Fields types :
 * "text" : input type text.
 * "textarea" : textarea field.
 * "editor" : the WYSIWYG editor used in the content of a post.
+* "select" : select between values
