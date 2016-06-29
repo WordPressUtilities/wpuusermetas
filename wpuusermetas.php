@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.4.1
+Version: 0.5
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -52,6 +52,9 @@ class WPUUserMetas {
             if (!isset($field['type']) || empty($field['type'])) {
                 $field['type'] = 'text';
             }
+            if (!isset($field['datas']) || !is_array($field['datas']) || empty($field['datas'])) {
+                $field['datas'] = array(0, 1);
+            }
             $this->fields[$id_field] = $field;
         }
         $this->sections = apply_filters('wpu_usermetas_sections', array());
@@ -76,20 +79,38 @@ class WPUUserMetas {
         }
         $this->get_datas();
         foreach ($this->fields as $id_field => $field) {
-            $new_value = '';
             if (isset($_POST[$id_field])) {
-                $posted_value = $_POST[$id_field];
-                switch ($field['type']) {
-                case 'editor':
-                    $new_value = $posted_value;
-                    break;
-
-                default:
-                    $new_value = esc_attr($posted_value);
-                }
-                update_usermeta($user_id, $id_field, $new_value);
+                update_user_meta($user_id, $id_field, $this->validate_value($field, $_POST[$id_field]));
             }
         }
+    }
+
+    /* Validate */
+
+    public function validate_value($field, $posted_value) {
+        $new_value = '';
+        switch ($field['type']) {
+        case 'editor':
+            $new_value = $posted_value;
+            break;
+        case 'email':
+            $new_value = filter_var($posted_value, FILTER_VALIDATE_EMAIL) ? $posted_value : '';
+            break;
+        case 'url':
+            $new_value = filter_var($posted_value, FILTER_VALIDATE_URL) ? $posted_value : '';
+            break;
+        case 'select':
+            $data_keys = array_keys($field['datas']);
+            $new_value = $data_keys[0];
+            if (array_key_exists($posted_value, $field['datas'])) {
+                $new_value = $posted_value;
+            }
+
+            break;
+        default:
+            $new_value = esc_attr($posted_value);
+        }
+        return $new_value;
     }
 
     /* Display */
@@ -119,25 +140,15 @@ class WPUUserMetas {
     public function display_field($user, $id_field, $field) {
 
         // Set vars
-        $label = $field['name'];
-        $type = $field['type'];
-        $datas = array(
-            0,
-            1
-        );
-        $idname = ' id="' . $id_field . '" name="' . $id_field . '" placeholder="' . $label . '" ';
+        $idname = ' id="' . $id_field . '" name="' . $id_field . '" placeholder="' . esc_attr($field['name']) . '" ';
         $value = get_the_author_meta($id_field, $user->ID);
         $content = '';
 
-        if (isset($field['datas']) && is_array($field['datas'])) {
-            $datas = $field['datas'];
-        }
-
         // Add a row by field
         $content .= '<tr>';
-        $content .= '<th><label for="' . $id_field . '">' . $label . '</label></th>';
+        $content .= '<th><label for="' . $id_field . '">' . $field['name'] . '</label></th>';
         $content .= '<td>';
-        switch ($type) {
+        switch ($field['type']) {
         case 'editor':
             ob_start();
             wp_editor($value, $id_field);
@@ -150,7 +161,7 @@ class WPUUserMetas {
 
         case 'select':
             $content .= '<select ' . $idname . '>';
-            foreach ($datas as $val => $label) {
+            foreach ($field['datas'] as $val => $label) {
                 $content .= '<option value="' . $val . '" ' . ($val == $value ? 'selected="selected"' : '') . '>' . strip_tags($label) . '</option>';
             }
             $content .= '</select>';
@@ -158,7 +169,7 @@ class WPUUserMetas {
 
         case 'email':
         case 'url':
-            $content .= '<input type="' . $type . '" ' . $idname . ' value="' . esc_attr($value) . '" />';
+            $content .= '<input type="' . $field['type'] . '" ' . $idname . ' value="' . esc_attr($value) . '" />';
             break;
 
         default:
