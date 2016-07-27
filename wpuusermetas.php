@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.5
+Version: 0.6
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,6 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
+    private $version = '0.6';
 
     public function __construct() {
 
@@ -37,6 +38,20 @@ class WPUUserMetas {
         add_action('edit_user_profile_update', array(&$this,
             'update_user_meta'
         ));
+        // Load assets
+        add_action('admin_enqueue_scripts', array(&$this,
+            'load_assets'
+        ));
+    }
+
+    public function load_assets() {
+        $screen = get_current_screen();
+        if ($screen->base != 'profile') {
+            return false;
+        }
+        wp_enqueue_media();
+        wp_enqueue_script('wpuusermetas_scripts', plugins_url('/assets/global.js', __FILE__), array(), $this->version);
+        wp_enqueue_style('wpuusermetas_style', plugins_url('assets/style.css', __FILE__));
     }
 
     /* Datas */
@@ -90,6 +105,9 @@ class WPUUserMetas {
     public function validate_value($field, $posted_value) {
         $new_value = '';
         switch ($field['type']) {
+        case 'attachment':
+            $new_value = !is_numeric($posted_value) ? false : $posted_value;
+            break;
         case 'editor':
             $new_value = $posted_value;
             break;
@@ -149,6 +167,22 @@ class WPUUserMetas {
         $content .= '<th><label for="' . $id_field . '">' . $field['name'] . '</label></th>';
         $content .= '<td>';
         switch ($field['type']) {
+        case 'attachment':
+            $img = '';
+            $btn_label = __('Add a picture', 'wpuusermetas');
+            $btn_base_label = $btn_label;
+            $btn_edit_label = __('Change this picture', 'wpuusermetas');
+            if (is_numeric($value)) {
+                $image = wp_get_attachment_image_src($value, 'big');
+                if (isset($image[0])) {
+                    $img = '<img class="wpu-usermetas-upload-preview" src="' . $image[0] . '" alt="" /><span data-for="' . $id_field . '" class="x">&times;</span>';
+                    $btn_label = $btn_edit_label;
+                }
+            }
+            $content .= '<div data-baselabel="' . esc_attr($btn_base_label) . '" data-label="' . esc_attr($btn_edit_label) . '" class="wpu-usermetas-upload-wrap" id="preview-' . $id_field . '">' . $img . '</div>';
+            $content .= '<a href="#" data-for="' . $id_field . '" class="button button-small wpuusermetas_add_media">' . $btn_label . '</a>';
+            $content .= '<input type="hidden" ' . $idname . ' value="' . $value . '" />';
+            break;
         case 'editor':
             ob_start();
             wp_editor($value, $id_field);
