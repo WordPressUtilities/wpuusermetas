@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.6
+Version: 0.7
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.6';
+    private $version = '0.7';
 
     public function __construct() {
 
@@ -26,6 +26,8 @@ class WPUUserMetas {
     }
 
     public function admin_hooks() {
+        load_plugin_textdomain('wpuusermetas', false, dirname(plugin_basename(__FILE__)) . '/lang/');
+
         add_action('show_user_profile', array(&$this,
             'display_form'
         ));
@@ -67,12 +69,21 @@ class WPUUserMetas {
             if (!isset($field['type']) || empty($field['type'])) {
                 $field['type'] = 'text';
             }
+            if (!isset($field['section']) || empty($field['section'])) {
+                $field['section'] = 'default';
+            }
             if (!isset($field['datas']) || !is_array($field['datas']) || empty($field['datas'])) {
                 $field['datas'] = array(0, 1);
             }
             $this->fields[$id_field] = $field;
         }
-        $this->sections = apply_filters('wpu_usermetas_sections', array());
+
+        $this->sections = apply_filters('wpu_usermetas_sections', $default_metas);
+        if (!isset($this->sections['default'])) {
+            $this->sections['default'] = array(
+                'name' => __('Metas', 'wpuusermetas')
+            );
+        }
     }
 
     public function get_section_fields($section_id) {
@@ -89,7 +100,7 @@ class WPUUserMetas {
 
     public function update_user_meta($user_id) {
         if (!isset($_POST['nonce_form-usermetas']) || !wp_verify_nonce($_POST['nonce_form-usermetas'], 'form-usermetas-' . $user_id)) {
-            echo __('Sorry, your nonce did not verify.');
+            echo __('Sorry, your nonce did not verify.', 'wpuusermetas');
             exit;
         }
         $this->get_datas();
