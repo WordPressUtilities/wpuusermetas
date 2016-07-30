@@ -5,7 +5,6 @@ jQuery(document).ready(function() {
     wputh_usermetas_set_media();
 });
 
-
 /* ----------------------------------------------------------
   Upload files
 ---------------------------------------------------------- */
@@ -46,9 +45,13 @@ var wputh_usermetas_set_media = function() {
 
     jQuery('body').on('click', '.wpuusermetas_add_media', function(event) {
         event.preventDefault();
-        var $this = jQuery(this);
+        var $this = jQuery(this),
+            $for,
+            forType;
 
         wpuusermetas_datafor = $this.data('for');
+        $for = jQuery('#' + wpuusermetas_datafor);
+        forType = $for.attr('data-fieldtype');
 
         // If the media frame already exists, reopen it.
         if (wpuusermetas_file_frame) {
@@ -57,19 +60,29 @@ var wputh_usermetas_set_media = function() {
         }
 
         // Create the media frame.
-        wpuusermetas_file_frame = wp.media.frames.wpuusermetas_file_frame = wp.media({
+        var media_settings = {
             title: $this.data('uploader_title'),
             button: {
                 text: $this.data('uploader_button_text'),
             },
             multiple: false // Set to true to allow multiple files to be selected
-        });
+        };
+        if (forType == 'image') {
+            media_settings.library = {
+                type: 'image'
+            };
+        }
+        wpuusermetas_file_frame = wp.media.frames.wpuusermetas_file_frame = wp.media(media_settings);
 
         // When an image is selected, run a callback.
         wpuusermetas_file_frame.on('select', function() {
             // We set multiple to false so only get one image from the uploader
             var attachment = wpuusermetas_file_frame.state().get('selection').first().toJSON(),
                 $preview = jQuery('#preview-' + wpuusermetas_datafor);
+
+            if (attachment.type != 'image') {
+                return;
+            }
 
             // Set attachment ID
             jQuery('#' + wpuusermetas_datafor).attr('value', attachment.id);

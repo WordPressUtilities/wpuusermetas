@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.7
+Version: 0.8
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.7';
+    private $version = '0.8';
 
     public function __construct() {
 
@@ -78,7 +78,7 @@ class WPUUserMetas {
             $this->fields[$id_field] = $field;
         }
 
-        $this->sections = apply_filters('wpu_usermetas_sections', $default_metas);
+        $this->sections = apply_filters('wpu_usermetas_sections', array());
         if (!isset($this->sections['default'])) {
             $this->sections['default'] = array(
                 'name' => __('Metas', 'wpuusermetas')
@@ -116,6 +116,14 @@ class WPUUserMetas {
     public function validate_value($field, $posted_value) {
         $new_value = '';
         switch ($field['type']) {
+        case 'image':
+            if (is_numeric($posted_value)) {
+                $img_value = wp_get_attachment_image_src($posted_value);
+                if (isset($img_value[0])) {
+                    $new_value = $posted_value;
+                }
+            }
+            break;
         case 'attachment':
             $new_value = !is_numeric($posted_value) ? false : $posted_value;
             break;
@@ -179,6 +187,7 @@ class WPUUserMetas {
         $content .= '<td>';
         switch ($field['type']) {
         case 'attachment':
+        case 'image':
             $img = '';
             $btn_label = __('Add a picture', 'wpuusermetas');
             $btn_base_label = $btn_label;
@@ -192,7 +201,7 @@ class WPUUserMetas {
             }
             $content .= '<div data-baselabel="' . esc_attr($btn_base_label) . '" data-label="' . esc_attr($btn_edit_label) . '" class="wpu-usermetas-upload-wrap" id="preview-' . $id_field . '">' . $img . '</div>';
             $content .= '<a href="#" data-for="' . $id_field . '" class="button button-small wpuusermetas_add_media">' . $btn_label . '</a>';
-            $content .= '<input type="hidden" ' . $idname . ' value="' . $value . '" />';
+            $content .= '<input data-fieldtype="' . $field['type'] . '" type="hidden" ' . $idname . ' value="' . $value . '" />';
             break;
         case 'editor':
             ob_start();
