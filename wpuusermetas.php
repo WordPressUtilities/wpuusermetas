@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.8
+Version: 0.9
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,18 +15,34 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.8';
+    private $version = '0.9';
 
     public function __construct() {
+
+        add_action('plugins_loaded', array(&$this,
+            'plugins_loaded'
+        ));
+
+    }
+
+    public function plugins_loaded() {
+        load_plugin_textdomain('wpuusermetas', false, dirname(plugin_basename(__FILE__)) . '/lang/');
 
         // Admin init
         if (is_admin()) {
             $this->admin_hooks();
         }
+
+        add_action('woocommerce_edit_account_form', array(&$this,
+            'woocommerce_edit_account_form'
+        ));
+
+        add_action('woocommerce_save_account_details', array(&$this,
+            'woocommerce_save_account_details'
+        ), 50, 1);
     }
 
     public function admin_hooks() {
-        load_plugin_textdomain('wpuusermetas', false, dirname(plugin_basename(__FILE__)) . '/lang/');
 
         add_action('show_user_profile', array(&$this,
             'display_form'
@@ -44,6 +60,7 @@ class WPUUserMetas {
         add_action('admin_enqueue_scripts', array(&$this,
             'load_assets'
         ));
+
     }
 
     public function load_assets() {
@@ -58,7 +75,7 @@ class WPUUserMetas {
 
     /* Datas */
 
-    public function get_datas() {
+    public function get_datas($user_id = false) {
         $fields = apply_filters('wpu_usermetas_fields', array());
         $this->fields = array();
         foreach ($fields as $id_field => $field) {
@@ -73,7 +90,10 @@ class WPUUserMetas {
                 $field['section'] = 'default';
             }
             if (!isset($field['datas']) || !is_array($field['datas']) || empty($field['datas'])) {
-                $field['datas'] = array(0, 1);
+                $field['datas'] = array(__('No'), __('Yes'));
+            }
+            if (is_numeric($user_id)) {
+                $field['value'] = get_user_meta($user_id, $id_field, 1);
             }
             $this->fields[$id_field] = $field;
         }
@@ -98,6 +118,15 @@ class WPUUserMetas {
 
     /* Update */
 
+    public function woocommerce_save_account_details($user_id) {
+        $this->get_datas($user_id);
+        foreach ($this->fields as $id_field => $field) {
+            if (isset($_POST[$id_field])) {
+                update_user_meta($user_id, $id_field, $this->validate_value($field, $_POST[$id_field]));
+            }
+        }
+    }
+
     public function update_user_meta($user_id) {
         if (!isset($_POST['nonce_form-usermetas']) || !wp_verify_nonce($_POST['nonce_form-usermetas'], 'form-usermetas-' . $user_id)) {
             echo __('Sorry, your nonce did not verify.', 'wpuusermetas');
@@ -114,7 +143,7 @@ class WPUUserMetas {
     /* Validate */
 
     public function validate_value($field, $posted_value) {
-        $new_value = '';
+        $new_value = isset($field['value']) ? $field['value'] : '';
         switch ($field['type']) {
         case 'image':
             if (is_numeric($posted_value)) {
@@ -152,6 +181,20 @@ class WPUUserMetas {
 
     /* Display */
 
+    public function woocommerce_edit_account_form() {
+        $user = wp_get_current_user();
+        $this->get_datas($user->ID);
+        foreach ($this->sections as $id => $section) {
+            $fields = $this->get_section_fields($id);
+            foreach ($fields as $id_field => $field) {
+                if (!isset($field['user_editable']) || !$field['user_editable']) {
+                    continue;
+                }
+                echo $this->display_field($user, $id_field, $field, true);
+            }
+        }
+    }
+
     public function display_form($user) {
         $this->get_datas();
         wp_nonce_field('form-usermetas-' . $user->ID, 'nonce_form-usermetas');
@@ -174,17 +217,24 @@ class WPUUserMetas {
         return $content;
     }
 
-    public function display_field($user, $id_field, $field) {
+    public function display_field($user, $id_field, $field, $user_editable = false) {
 
         // Set vars
         $idname = ' id="' . $id_field . '" name="' . $id_field . '" placeholder="' . esc_attr($field['name']) . '" ';
-        $value = get_the_author_meta($id_field, $user->ID);
+        $value = isset($field['value']) ? $field['value'] : get_the_author_meta($id_field, $user->ID);
         $content = '';
 
+        $label_html = '<label for="' . $id_field . '">' . $field['name'] . '</label>';
+        $input_class = $user_editable ? 'class="woocommerce-Input woocommerce-Input--email input-text"' : '';
+
         // Add a row by field
-        $content .= '<tr>';
-        $content .= '<th><label for="' . $id_field . '">' . $field['name'] . '</label></th>';
-        $content .= '<td>';
+        if ($user_editable) {
+            $content .= '<p class="woocommerce-form-row woocommerce-form-row--wide form-row form-row-wide">' . $label_html;
+        } else {
+            $content .= '<tr>';
+            $content .= '<th>' . $label_html . '</th>';
+            $content .= '<td>';
+        }
         switch ($field['type']) {
         case 'attachment':
         case 'image':
@@ -223,18 +273,22 @@ class WPUUserMetas {
 
         case 'email':
         case 'url':
-            $content .= '<input type="' . $field['type'] . '" ' . $idname . ' value="' . esc_attr($value) . '" />';
+            $content .= '<input ' . $input_class . ' type="' . $field['type'] . '" ' . $idname . ' value="' . esc_attr($value) . '" />';
             break;
 
         default:
-            $content .= '<input type="text" ' . $idname . ' value="' . esc_attr($value) . '" />';
+            $content .= '<input ' . $input_class . ' type="text" ' . $idname . ' value="' . esc_attr($value) . '" />';
         }
         if (isset($field['description'])) {
             $content .= '<br /><span class="description">' . esc_attr($field['description']) . '</span>';
         }
 
-        $content .= '</td>';
-        $content .= '</tr>';
+        if ($user_editable) {
+            $content .= '</p>';
+        } else {
+            $content .= '</td>';
+            $content .= '</tr>';
+        }
         return $content;
     }
 }
