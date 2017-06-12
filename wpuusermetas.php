@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.9
+Version: 0.10.0
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.9';
+    private $version = '0.10.0';
 
     public function __construct() {
 
@@ -119,6 +119,10 @@ class WPUUserMetas {
     /* Update */
 
     public function woocommerce_save_account_details($user_id) {
+        if (!isset($_POST['nonce_form-usermetas']) || !wp_verify_nonce($_POST['nonce_form-usermetas'], 'form-usermetas-' . $user_id)) {
+            echo __('Sorry, your nonce did not verify.', 'wpuusermetas');
+            exit;
+        }
         $this->get_datas($user_id);
         foreach ($this->fields as $id_field => $field) {
             if (isset($_POST[$id_field])) {
@@ -184,6 +188,7 @@ class WPUUserMetas {
     public function woocommerce_edit_account_form() {
         $user = wp_get_current_user();
         $this->get_datas($user->ID);
+        wp_nonce_field('form-usermetas-' . $user->ID, 'nonce_form-usermetas');
         foreach ($this->sections as $id => $section) {
             $fields = $this->get_section_fields($id);
             foreach ($fields as $id_field => $field) {
@@ -225,11 +230,13 @@ class WPUUserMetas {
         $content = '';
 
         $label_html = '<label for="' . $id_field . '">' . $field['name'] . '</label>';
-        $input_class = $user_editable ? 'class="woocommerce-Input woocommerce-Input--email input-text"' : '';
+        $input_class = $user_editable ? 'class="' . apply_filters('wpuusermetas_public_field_input_classname', 'woocommerce-Input woocommerce-Input--email input-text', $user, $id_field) . '"' : '';
 
         // Add a row by field
         if ($user_editable) {
-            $content .= '<p class="woocommerce-form-row woocommerce-form-row--wide form-row form-row-wide">' . $label_html;
+            $content .= apply_filters('wpuusermetas_public_field_before_label_html', '<p class="woocommerce-form-row woocommerce-form-row--wide form-row form-row-wide">', $user, $id_field);
+            $content .= $label_html;
+            $content .= apply_filters('wpuusermetas_public_field_after_label_html', '', $user, $id_field);
         } else {
             $content .= '<tr>';
             $content .= '<th>' . $label_html . '</th>';
@@ -284,7 +291,7 @@ class WPUUserMetas {
         }
 
         if ($user_editable) {
-            $content .= '</p>';
+            $content .= apply_filters('wpuusermetas_public_field_after_input_html', '</p>', $user, $id_field);
         } else {
             $content .= '</td>';
             $content .= '</tr>';
