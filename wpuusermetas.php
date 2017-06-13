@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.10.0
+Version: 0.11.0
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.10.0';
+    private $version = '0.11.0';
 
     public function __construct() {
 
@@ -123,12 +123,7 @@ class WPUUserMetas {
             echo __('Sorry, your nonce did not verify.', 'wpuusermetas');
             exit;
         }
-        $this->get_datas($user_id);
-        foreach ($this->fields as $id_field => $field) {
-            if (isset($_POST[$id_field])) {
-                update_user_meta($user_id, $id_field, $this->validate_value($field, $_POST[$id_field]));
-            }
-        }
+        $this->update_from_post($user_id);
     }
 
     public function update_user_meta($user_id) {
@@ -136,8 +131,16 @@ class WPUUserMetas {
             echo __('Sorry, your nonce did not verify.', 'wpuusermetas');
             exit;
         }
-        $this->get_datas();
+        $this->update_from_post($user_id);
+    }
+
+    public function update_from_post($user_id) {
+        $this->get_datas($user_id);
         foreach ($this->fields as $id_field => $field) {
+            if ($field['type'] == 'checkbox') {
+                update_user_meta($user_id, $id_field, isset($_POST[$id_field]) ? '1' : '0');
+                continue;
+            }
             if (isset($_POST[$id_field])) {
                 update_user_meta($user_id, $id_field, $this->validate_value($field, $_POST[$id_field]));
             }
@@ -276,6 +279,13 @@ class WPUUserMetas {
                 $content .= '<option value="' . $val . '" ' . ($val == $value ? 'selected="selected"' : '') . '>' . strip_tags($label) . '</option>';
             }
             $content .= '</select>';
+            break;
+
+        case 'checkbox':
+            $content .= '<input ' . $input_class . ' type="checkbox" ' . $idname . ' value="' . esc_attr($value) . '" ' . ($value == '1' ? 'checked="checked"' : '') . ' />';
+            if (isset($field['label_checkbox'])) {
+                $content .= '<label for="' . $id_field . '">' . esc_html($field['label_checkbox']) . '</label>';
+            }
             break;
 
         case 'email':
