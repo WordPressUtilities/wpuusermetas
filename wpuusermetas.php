@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.11.0
+Version: 0.12.0
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.11.0';
+    private $version = '0.12.0';
 
     public function __construct() {
 
@@ -33,9 +33,20 @@ class WPUUserMetas {
             $this->admin_hooks();
         }
 
-        add_action('woocommerce_edit_account_form', array(&$this,
-            'woocommerce_edit_account_form'
-        ));
+        $fields = apply_filters('wpu_usermetas_fields', array());
+
+        $hooks_user_editable = array('woocommerce_edit_account_form' => 'woocommerce_edit_account_form');
+        foreach ($fields as $field) {
+            if (isset($field['user_editable_hook'])) {
+                $hooks_user_editable[$field['user_editable_hook']] = $field['user_editable_hook'];
+            }
+        }
+
+        foreach ($hooks_user_editable as $hook_user_editable) {
+            add_action($hook_user_editable, array(&$this,
+                'woocommerce_edit_account_form'
+            ));
+        }
 
         add_action('woocommerce_save_account_details', array(&$this,
             'woocommerce_save_account_details'
@@ -189,16 +200,26 @@ class WPUUserMetas {
     /* Display */
 
     public function woocommerce_edit_account_form() {
+        $current_filter = current_filter();
+        $default_filter = ($current_filter == 'woocommerce_edit_account_form');
         $user = wp_get_current_user();
         $this->get_datas($user->ID);
-        wp_nonce_field('form-usermetas-' . $user->ID, 'nonce_form-usermetas');
+        /* Nonce on one only */
+        if ($default_filter) {
+            wp_nonce_field('form-usermetas-' . $user->ID, 'nonce_form-usermetas');
+        }
         foreach ($this->sections as $id => $section) {
             $fields = $this->get_section_fields($id);
             foreach ($fields as $id_field => $field) {
                 if (!isset($field['user_editable']) || !$field['user_editable']) {
                     continue;
                 }
-                echo $this->display_field($user, $id_field, $field, true);
+                if(!isset($field['user_editable_hook'])){
+                    $field['user_editable_hook'] = $default_filter;
+                }
+                if ($field['user_editable_hook'] == $current_filter) {
+                    echo $this->display_field($user, $id_field, $field, true);
+                }
             }
         }
     }
@@ -235,10 +256,12 @@ class WPUUserMetas {
         $label_html = '<label for="' . $id_field . '">' . $field['name'] . '</label>';
         $input_class = $user_editable ? 'class="' . apply_filters('wpuusermetas_public_field_input_classname', 'woocommerce-Input woocommerce-Input--email input-text', $user, $id_field) . '"' : '';
 
+        $before_label_html = $field['type'] == 'checkbox' ? '<p class="woocommerce-form-row form-row">' : '<p class="woocommerce-form-row woocommerce-form-row--wide form-row form-row-wide">';
+
         // Add a row by field
         if ($user_editable) {
-            $content .= apply_filters('wpuusermetas_public_field_before_label_html', '<p class="woocommerce-form-row woocommerce-form-row--wide form-row form-row-wide">', $user, $id_field);
-            $content .= $label_html;
+            $content .= apply_filters('wpuusermetas_public_field_before_label_html', $before_label_html, $user, $id_field);
+            $content .= $field['type'] == 'checkbox' ? '' : $label_html;
             $content .= apply_filters('wpuusermetas_public_field_after_label_html', '', $user, $id_field);
         } else {
             $content .= '<tr>';
@@ -282,9 +305,20 @@ class WPUUserMetas {
             break;
 
         case 'checkbox':
-            $content .= '<input ' . $input_class . ' type="checkbox" ' . $idname . ' value="' . esc_attr($value) . '" ' . ($value == '1' ? 'checked="checked"' : '') . ' />';
-            if (isset($field['label_checkbox'])) {
-                $content .= '<label for="' . $id_field . '">' . esc_html($field['label_checkbox']) . '</label>';
+            if ($user_editable) {
+                $label_check = $field['label_checkbox'];
+                if (empty($label_check)) {
+                    $label_check = $field['label_checkbox'];
+                }
+                $content .= '<label class="woocommerce-form__label woocommerce-form__label-for-checkbox inline">';
+                $content .= '<input class="woocommerce-form__input woocommerce-form__input-checkbox" type="checkbox" ' . $idname . ' value="' . esc_attr($value) . '" ' . ($value == '1' ? 'checked="checked"' : '') . ' />';
+                $content .= '<span>' . $label_check . '</span>';
+                $content .= '</label>';
+            } else {
+                $content .= '<input ' . $input_class . ' type="checkbox" ' . $idname . ' value="' . esc_attr($value) . '" ' . ($value == '1' ? 'checked="checked"' : '') . ' />';
+                if (isset($field['label_checkbox'])) {
+                    $content .= '<label for="' . $id_field . '">' . esc_html($field['label_checkbox']) . '</label>';
+                }
             }
             break;
 
