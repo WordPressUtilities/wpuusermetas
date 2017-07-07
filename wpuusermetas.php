@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.12.0
+Version: 0.13.0
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.12.0';
+    private $version = '0.13.0';
 
     public function __construct() {
 
@@ -33,10 +33,9 @@ class WPUUserMetas {
             $this->admin_hooks();
         }
 
-        $fields = apply_filters('wpu_usermetas_fields', array());
-
+        $this->fields = $this->get_datas();
         $hooks_user_editable = array('woocommerce_edit_account_form' => 'woocommerce_edit_account_form');
-        foreach ($fields as $field) {
+        foreach ($this->fields as $field) {
             if (isset($field['user_editable_hook'])) {
                 $hooks_user_editable[$field['user_editable_hook']] = $field['user_editable_hook'];
             }
@@ -67,10 +66,25 @@ class WPUUserMetas {
         add_action('edit_user_profile_update', array(&$this,
             'update_user_meta'
         ));
+
         // Load assets
         add_action('admin_enqueue_scripts', array(&$this,
             'load_assets'
         ));
+
+        // Columns
+        add_filter('manage_users_columns', array(&$this,
+            'modify_user_table'
+        ), 10, 1);
+        add_filter('manage_users_custom_column', array(&$this,
+            'modify_user_table_row'
+        ), 10, 3);
+        add_filter('manage_users_sortable_columns', array(&$this,
+            'sortable_columns'
+        ), 10, 1);
+        add_action('pre_get_users', array(&$this,
+            'sort_columns'
+        ), 10, 1);
 
     }
 
@@ -97,6 +111,19 @@ class WPUUserMetas {
             if (!isset($field['type']) || empty($field['type'])) {
                 $field['type'] = 'text';
             }
+            if (!isset($field['admin_column_sortable'])) {
+                $field['admin_column_sortable'] = false;
+            }
+            if($field['admin_column']){
+                $field['admin_column'] = false;
+            }
+            if (!isset($field['admin_column_sortable'])) {
+                $field['admin_column_sortable'] = false;
+            } else {
+                if($field['admin_column_sortable']){
+                    $field['admin_column'] = true;
+                }
+            }
             if (!isset($field['section']) || empty($field['section'])) {
                 $field['section'] = 'default';
             }
@@ -115,6 +142,7 @@ class WPUUserMetas {
                 'name' => __('Metas', 'wpuusermetas')
             );
         }
+        return $this->fields;
     }
 
     public function get_section_fields($section_id) {
@@ -180,6 +208,9 @@ class WPUUserMetas {
         case 'email':
             $new_value = filter_var($posted_value, FILTER_VALIDATE_EMAIL) ? $posted_value : '';
             break;
+        case 'number':
+            $new_value = is_numeric($posted_value) ? $posted_value : '';
+            break;
         case 'url':
             $new_value = filter_var($posted_value, FILTER_VALIDATE_URL) ? $posted_value : '';
             break;
@@ -214,7 +245,7 @@ class WPUUserMetas {
                 if (!isset($field['user_editable']) || !$field['user_editable']) {
                     continue;
                 }
-                if(!isset($field['user_editable_hook'])){
+                if (!isset($field['user_editable_hook'])) {
                     $field['user_editable_hook'] = $default_filter;
                 }
                 if ($field['user_editable_hook'] == $current_filter) {
@@ -322,6 +353,7 @@ class WPUUserMetas {
             }
             break;
 
+        case 'number':
         case 'email':
         case 'url':
             $content .= '<input ' . $input_class . ' type="' . $field['type'] . '" ' . $idname . ' value="' . esc_attr($value) . '" />';
@@ -342,6 +374,58 @@ class WPUUserMetas {
         }
         return $content;
     }
+
+    /* ----------------------------------------------------------
+      Sort columns
+    ---------------------------------------------------------- */
+
+    public function modify_user_table($column) {
+        foreach ($this->fields as $id => $field) {
+            if (!$field['admin_column']) {
+                continue;
+            }
+            $column[$id] = $field['name'];
+        }
+        return $column;
+    }
+
+    public function modify_user_table_row($val, $column_name, $user_id) {
+        foreach ($this->fields as $id => $field) {
+            if (!$field['admin_column']) {
+                continue;
+            }
+            if ($column_name == $id) {
+                return get_user_meta($user_id, $id, 1);
+            }
+        }
+        return $val;
+    }
+
+    public function sortable_columns($columns) {
+        foreach ($this->fields as $id => $field) {
+            if (!$field['admin_column_sortable']) {
+                continue;
+            }
+            $columns[$id] = $id;
+        }
+        return $columns;
+    }
+
+    public function sort_columns($query) {
+        if (!is_admin()) {
+            return;
+        }
+        foreach ($this->fields as $id => $field) {
+            if (!$field['admin_column_sortable']) {
+                continue;
+            }
+            if ($query->get('orderby') == $id) {
+                $query->set('orderby', $field['type'] == 'number' ? 'meta_value_num' : 'meta_value');
+                $query->set('meta_key', $id);
+            }
+        }
+    }
+
 }
 
 new WPUUserMetas();
