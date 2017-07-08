@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.13.0
+Version: 0.14.0
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.13.0';
+    private $version = '0.14.0';
 
     public function __construct() {
 
@@ -66,6 +66,9 @@ class WPUUserMetas {
         add_action('edit_user_profile_update', array(&$this,
             'update_user_meta'
         ));
+        add_action('pre_user_query', array(&$this,
+            'user_extended_search'
+        ));
 
         // Load assets
         add_action('admin_enqueue_scripts', array(&$this,
@@ -114,13 +117,16 @@ class WPUUserMetas {
             if (!isset($field['admin_column_sortable'])) {
                 $field['admin_column_sortable'] = false;
             }
-            if($field['admin_column']){
+            if (!isset($field['admin_searchable'])) {
+                $field['admin_searchable'] = false;
+            }
+            if (!isset($field['admin_column'])) {
                 $field['admin_column'] = false;
             }
             if (!isset($field['admin_column_sortable'])) {
                 $field['admin_column_sortable'] = false;
             } else {
-                if($field['admin_column_sortable']){
+                if ($field['admin_column_sortable']) {
                     $field['admin_column'] = true;
                 }
             }
@@ -373,6 +379,39 @@ class WPUUserMetas {
             $content .= '</tr>';
         }
         return $content;
+    }
+
+    /* ----------------------------------------------------------
+      Search
+    ---------------------------------------------------------- */
+
+    public function user_extended_search($q) {
+        global $wpdb;
+
+        /* Avoid special cases */
+        if (!is_admin() || strpos($q->query_where, '@') !== false || empty($_GET["s"])) {
+            return;
+        }
+
+        /* Choose searchable fields */
+        $search_fields = array();
+        foreach ($this->fields as $id => $field) {
+            if (!$field['admin_searchable']) {
+                continue;
+            }
+            $search_fields[] = $id;
+        }
+
+        if (empty($search_fields)) {
+            return;
+        }
+
+        // Extend query
+        $user_with_meta = $wpdb->get_col("SELECT DISTINCT user_id FROM $wpdb->usermeta WHERE (meta_key IN('" . implode(',', $wpdb->escape($search_fields)) . "')) AND LOWER(meta_value) LIKE '%" . $wpdb->escape($_GET["s"]) . "%'");
+        $id_string = implode(",", $user_with_meta);
+        if (!empty($id_string)) {
+            $q->query_where = str_replace("user_login LIKE", "ID IN(" . $id_string . ") OR user_login LIKE", $q->query_where);
+        }
     }
 
     /* ----------------------------------------------------------
