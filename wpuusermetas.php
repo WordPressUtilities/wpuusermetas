@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.14.0
+Version: 0.14.1
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.14.0';
+    private $version = '0.14.1';
 
     public function __construct() {
 
@@ -47,9 +47,28 @@ class WPUUserMetas {
             ));
         }
 
+        add_filter('woocommerce_checkout_fields', array(&$this, 'woocommerce_checkout_fields'), 10, 1);
+        add_action('woocommerce_checkout_update_order_meta', array(&$this, 'checkout_update_order_meta'));
+
         add_action('woocommerce_save_account_details', array(&$this,
             'woocommerce_save_account_details'
         ), 50, 1);
+    }
+
+    public function woocommerce_checkout_fields($checkout_fields) {
+        foreach ($this->fields as $id => $field) {
+            if (!$field['checkout_editable']) {
+                continue;
+            }
+            $checkout_fields['account']['account_' . $id] = $field;
+        }
+        return $checkout_fields;
+    }
+
+    public function checkout_update_order_meta($order_id) {
+        $order = wc_get_order($order_id);
+        $customer_id = $order->get_user_id();
+        $this->update_from_post($customer_id, 'account_');
     }
 
     public function admin_hooks() {
@@ -117,6 +136,9 @@ class WPUUserMetas {
             if (!isset($field['admin_column_sortable'])) {
                 $field['admin_column_sortable'] = false;
             }
+            if (!isset($field['checkout_editable'])) {
+                $field['checkout_editable'] = false;
+            }
             if (!isset($field['admin_searchable'])) {
                 $field['admin_searchable'] = false;
             }
@@ -179,15 +201,15 @@ class WPUUserMetas {
         $this->update_from_post($user_id);
     }
 
-    public function update_from_post($user_id) {
+    public function update_from_post($user_id, $prefix = '') {
         $this->get_datas($user_id);
         foreach ($this->fields as $id_field => $field) {
             if ($field['type'] == 'checkbox') {
-                update_user_meta($user_id, $id_field, isset($_POST[$id_field]) ? '1' : '0');
+                update_user_meta($user_id, $id_field, isset($_POST[$prefix . $id_field]) ? '1' : '0');
                 continue;
             }
-            if (isset($_POST[$id_field])) {
-                update_user_meta($user_id, $id_field, $this->validate_value($field, $_POST[$id_field]));
+            if (isset($_POST[$prefix . $id_field])) {
+                update_user_meta($user_id, $id_field, $this->validate_value($field, $_POST[$prefix . $id_field]));
             }
         }
     }
