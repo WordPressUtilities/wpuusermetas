@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"POT-Creation-Date: 2017-08-01 20:44+0200\n"
+"POT-Creation-Date: 2017-08-02 14:39+0200\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Darklg <darklg.blog@gmail.com>\n"
 "Language-Team: \n"
@@ -15,26 +15,26 @@ msgstr ""
 "X-Poedit-KeywordsList: __;_e\n"
 "X-Poedit-SearchPath-0: ../.\n"
 
-#: .././wpuusermetas.php:159
+#: .././wpuusermetas.php:175
 msgid "No"
 msgstr "Non"
 
-#: .././wpuusermetas.php:159
+#: .././wpuusermetas.php:175
 msgid "Yes"
 msgstr "Oui"
 
-#: .././wpuusermetas.php:170
+#: .././wpuusermetas.php:186
 msgid "Metas"
 msgstr "Metas"
 
-#: .././wpuusermetas.php:190 .././wpuusermetas.php:198
+#: .././wpuusermetas.php:206 .././wpuusermetas.php:214
 msgid "Sorry, your nonce did not verify."
 msgstr "Désolé, votre nonce est invalide."
 
-#: .././wpuusermetas.php:334
+#: .././wpuusermetas.php:350
 msgid "Add a picture"
 msgstr "Ajouter une image"
 
-#: .././wpuusermetas.php:336
+#: .././wpuusermetas.php:352
 msgid "Change this picture"
 msgstr "Modifier cette image"

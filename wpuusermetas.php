@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.14.1
+Version: 0.15.0
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.14.1';
+    private $version = '0.15.0';
 
     public function __construct() {
 
@@ -56,13 +56,29 @@ class WPUUserMetas {
     }
 
     public function woocommerce_checkout_fields($checkout_fields) {
+        $checkout_fields_types = array();
         foreach ($this->fields as $id => $field) {
             if (!$field['checkout_editable']) {
                 continue;
             }
             $checkout_fields['account']['account_' . $id] = $field;
+            $checkout_fields_types[$field['type']] = $field['type'];
         }
+
+        /* Override display in checkout fields */
+        foreach ($checkout_fields_types as $field_type) {
+            add_filter('woocommerce_form_field_' . $field_type, array(&$this, 'custom_checkout_form_field'), 10, 4);
+        }
+
         return $checkout_fields;
+    }
+
+    public function custom_checkout_form_field($field, $key, $args, $value) {
+        $new_key = str_replace('account_', '', $key);
+        if (!array_key_exists($new_key, $this->fields) || !$this->fields[$new_key]['checkout_editable']) {
+            return $field;
+        }
+        return $this->display_field(false, $new_key, $this->fields[$new_key], true);
     }
 
     public function checkout_update_order_meta($order_id) {
