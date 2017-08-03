@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.15.0
+Version: 0.15.1
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.15.0';
+    private $version = '0.15.1';
 
     public function __construct() {
 
@@ -78,7 +78,7 @@ class WPUUserMetas {
         if (!array_key_exists($new_key, $this->fields) || !$this->fields[$new_key]['checkout_editable']) {
             return $field;
         }
-        return $this->display_field(false, $new_key, $this->fields[$new_key], true);
+        return $this->display_field(false, $new_key, $this->fields[$new_key], true, 'account_');
     }
 
     public function checkout_update_order_meta($order_id) {
@@ -219,6 +219,7 @@ class WPUUserMetas {
 
     public function update_from_post($user_id, $prefix = '') {
         $this->get_datas($user_id);
+        error_log(json_encode($_POST));
         foreach ($this->fields as $id_field => $field) {
             if ($field['type'] == 'checkbox') {
                 update_user_meta($user_id, $id_field, isset($_POST[$prefix . $id_field]) ? '1' : '0');
@@ -321,14 +322,14 @@ class WPUUserMetas {
         return $content;
     }
 
-    public function display_field($user, $id_field, $field, $user_editable = false) {
+    public function display_field($user, $id_field, $field, $user_editable = false, $prefix = '') {
 
         // Set vars
-        $idname = ' id="' . $id_field . '" name="' . $id_field . '" placeholder="' . esc_attr($field['name']) . '" ';
+        $idname = ' id="' . $prefix . $id_field . '" name="' . $prefix . $id_field . '" placeholder="' . esc_attr($field['name']) . '" ';
         $value = isset($field['value']) ? $field['value'] : get_the_author_meta($id_field, $user->ID);
         $content = '';
 
-        $label_html = '<label for="' . $id_field . '">' . $field['name'] . '</label>';
+        $label_html = '<label for="' . $prefix . $id_field . '">' . $field['name'] . '</label>';
         $input_class = $user_editable ? 'class="' . apply_filters('wpuusermetas_public_field_input_classname', 'woocommerce-Input woocommerce-Input--email input-text', $user, $id_field) . '"' : '';
 
         $before_label_html = $field['type'] == 'checkbox' ? '<p class="woocommerce-form-row form-row">' : '<p class="woocommerce-form-row woocommerce-form-row--wide form-row form-row-wide">';
@@ -392,7 +393,7 @@ class WPUUserMetas {
             } else {
                 $content .= '<input ' . $input_class . ' type="checkbox" ' . $idname . ' value="' . esc_attr($value) . '" ' . ($value == '1' ? 'checked="checked"' : '') . ' />';
                 if (isset($field['label_checkbox'])) {
-                    $content .= '<label for="' . $id_field . '">' . esc_html($field['label_checkbox']) . '</label>';
+                    $content .= '<label for="' . $prefix . $id_field . '">' . esc_html($field['label_checkbox']) . '</label>';
                 }
             }
             break;
