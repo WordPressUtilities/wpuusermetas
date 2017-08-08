@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"POT-Creation-Date: 2017-08-03 20:10+0200\n"
+"POT-Creation-Date: 2017-08-08 12:07+0200\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Darklg <darklg.blog@gmail.com>\n"
 "Language-Team: \n"
@@ -31,10 +31,10 @@ msgstr "Metas"
 msgid "Sorry, your nonce did not verify."
 msgstr "Désolé, votre nonce est invalide."
 
-#: .././wpuusermetas.php:351
+#: .././wpuusermetas.php:353
 msgid "Add a picture"
 msgstr "Ajouter une image"
 
-#: .././wpuusermetas.php:353
+#: .././wpuusermetas.php:355
 msgid "Change this picture"
 msgstr "Modifier cette image"

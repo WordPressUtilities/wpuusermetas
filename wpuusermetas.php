@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.15.1
+Version: 0.15.2
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.15.1';
+    private $version = '0.15.2';
 
     public function __construct() {
 
@@ -219,7 +219,6 @@ class WPUUserMetas {
 
     public function update_from_post($user_id, $prefix = '') {
         $this->get_datas($user_id);
-        error_log(json_encode($_POST));
         foreach ($this->fields as $id_field => $field) {
             if ($field['type'] == 'checkbox') {
                 update_user_meta($user_id, $id_field, isset($_POST[$prefix . $id_field]) ? '1' : '0');
@@ -326,7 +325,10 @@ class WPUUserMetas {
 
         // Set vars
         $idname = ' id="' . $prefix . $id_field . '" name="' . $prefix . $id_field . '" placeholder="' . esc_attr($field['name']) . '" ';
-        $value = isset($field['value']) ? $field['value'] : get_the_author_meta($id_field, $user->ID);
+        $value = isset($field['value']) ? $field['value'] : '';
+        if (is_object($user) && !$value) {
+            $value = get_the_author_meta($id_field, $user->ID);
+        }
         $content = '';
 
         $label_html = '<label for="' . $prefix . $id_field . '">' . $field['name'] . '</label>';
