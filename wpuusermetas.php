@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.15.2
+Version: 0.15.3
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.15.2';
+    private $version = '0.15.3';
 
     public function __construct() {
 
@@ -75,10 +75,14 @@ class WPUUserMetas {
 
     public function custom_checkout_form_field($field, $key, $args, $value) {
         $new_key = str_replace('account_', '', $key);
-        if (!array_key_exists($new_key, $this->fields) || !$this->fields[$new_key]['checkout_editable']) {
-            return $field;
+        if (array_key_exists($new_key, $this->fields) && $this->fields[$new_key]['checkout_editable']) {
+            $field_details = $this->fields[$new_key];
+            if (isset($field_details['default_value'])) {
+                $field_details['value'] = $field_details['default_value'];
+            }
+            $field = $this->display_field(false, $new_key, $field_details, true, 'account_');
         }
-        return $this->display_field(false, $new_key, $this->fields[$new_key], true, 'account_');
+        return $field;
     }
 
     public function checkout_update_order_meta($order_id) {
