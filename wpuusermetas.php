@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.15.4
+Version: 0.16.0
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.15.4';
+    private $version = '0.16.0';
 
     public function __construct() {
 
@@ -41,18 +41,40 @@ class WPUUserMetas {
             }
         }
 
+        /* Account */
         foreach ($hooks_user_editable as $hook_user_editable) {
             add_action($hook_user_editable, array(&$this,
                 'woocommerce_edit_account_form'
             ));
         }
-
-        add_filter('woocommerce_checkout_fields', array(&$this, 'woocommerce_checkout_fields'), 10, 1);
-        add_action('woocommerce_checkout_update_order_meta', array(&$this, 'checkout_update_order_meta'));
-
         add_action('woocommerce_save_account_details', array(&$this,
             'woocommerce_save_account_details'
         ), 50, 1);
+
+        /* Checkout */
+        add_filter('woocommerce_checkout_fields', array(&$this, 'woocommerce_checkout_fields'), 10, 1);
+        add_action('woocommerce_checkout_update_order_meta', array(&$this, 'checkout_update_order_meta'));
+
+        /* Register */
+        add_action('woocommerce_register_form', array(&$this, 'woocommerce_register_form'), 10, 1);
+        add_action('woocommerce_created_customer', array(&$this, 'woocommerce_created_customer'), 10, 1);
+
+    }
+
+    public function woocommerce_register_form() {
+        foreach ($this->sections as $id => $section) {
+            $fields = $this->get_section_fields($id);
+            foreach ($fields as $id_field => $field) {
+                if (!isset($field['register_editable']) || !$field['register_editable']) {
+                    continue;
+                }
+                echo $this->display_field(false, $id_field, $field, true);
+            }
+        }
+    }
+
+    public function woocommerce_created_customer($user_id) {
+        $this->update_from_post($user_id);
     }
 
     public function woocommerce_checkout_fields($checkout_fields) {
