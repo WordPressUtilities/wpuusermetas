@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.16.0
+Version: 0.17.0
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.16.0';
+    private $version = '0.17.0';
 
     public function __construct() {
 
@@ -56,9 +56,15 @@ class WPUUserMetas {
         add_action('woocommerce_checkout_update_order_meta', array(&$this, 'checkout_update_order_meta'));
 
         /* Register */
-        add_action('woocommerce_register_form', array(&$this, 'woocommerce_register_form'), 10, 1);
-        add_action('woocommerce_created_customer', array(&$this, 'woocommerce_created_customer'), 10, 1);
-
+        $register_form_hook__name = apply_filters('wpuusermetas_register_form_hook__name', 'woocommerce_register_form');
+        $register_form_hook__priority = apply_filters('wpuusermetas_register_form_hook__priority', 10);
+        add_action($register_form_hook__name, array(&$this,
+            'woocommerce_register_form'
+        ), $register_form_hook__priority, 1);
+        add_action('woocommerce_created_customer', array(&$this,
+            'woocommerce_created_customer'
+        ), 10, 1);
+        add_action('woocommerce_register_post', array(&$this, 'woocommerce_register_post'), 10, 3);
     }
 
     public function woocommerce_register_form() {
@@ -71,6 +77,18 @@ class WPUUserMetas {
                 echo $this->display_field(false, $id_field, $field, true);
             }
         }
+    }
+
+    public function woocommerce_register_post($username, $email, $validation_errors) {
+        foreach ($this->fields as $id_field => $field) {
+            if (!isset($field['register_editable']) || !$field['register_editable'] || !isset($field['required']) || !$field['required']) {
+                continue;
+            }
+            if (!isset($_POST[$id_field]) || empty($_POST[$id_field])) {
+                $validation_errors->add($id_field . '_error', sprintf(__('The field "%s" is required!', 'wpuusermetas'), $field['name']));
+            }
+        }
+        return $validation_errors;
     }
 
     public function woocommerce_created_customer($user_id) {
@@ -174,6 +192,9 @@ class WPUUserMetas {
             }
             if (!isset($field['type']) || empty($field['type'])) {
                 $field['type'] = 'text';
+            }
+            if (!isset($field['required'])) {
+                $field['required'] = false;
             }
             if (!isset($field['admin_column_sortable'])) {
                 $field['admin_column_sortable'] = false;
@@ -359,7 +380,7 @@ class WPUUserMetas {
         }
         $content = '';
 
-        $label_html = '<label for="' . $prefix . $id_field . '">' . $field['name'] . '</label>';
+        $label_html = '<label for="' . $prefix . $id_field . '">' . $field['name'] . ($field['required'] ? ' <span class="required">*</span>' : '') . '</label>';
         $input_class = $user_editable ? 'class="' . apply_filters('wpuusermetas_public_field_input_classname', 'woocommerce-Input woocommerce-Input--email input-text', $user, $id_field) . '"' : '';
 
         $before_label_html = $field['type'] == 'checkbox' ? '<p class="woocommerce-form-row form-row">' : '<p class="woocommerce-form-row woocommerce-form-row--wide form-row form-row-wide">';
