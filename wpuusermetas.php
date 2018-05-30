@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.17.2
+Version: 0.17.3
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.17.2';
+    private $version = '0.17.3';
 
     public function __construct() {
 
@@ -230,13 +230,29 @@ class WPUUserMetas {
             $this->fields[$id_field] = $field;
         }
 
-        $this->sections = apply_filters('wpu_usermetas_sections', array());
-        if (!isset($this->sections['default'])) {
-            $this->sections['default'] = array(
+        $this->sections = $this->get_sections();
+
+        return $this->fields;
+    }
+
+    public function get_sections() {
+        $sections = apply_filters('wpu_usermetas_sections', array());
+        if (!isset($sections['default'])) {
+            $sections['default'] = array(
                 'name' => __('Metas', 'wpuusermetas')
             );
         }
-        return $this->fields;
+        foreach ($sections as $id => $section) {
+            if (!isset($section['name'])) {
+                $section['name'] = $id;
+            }
+            $sections[$id]['name'] = esc_html(trim($section['name']));
+            if (!isset($section['description'])) {
+                $section['description'] = '';
+            }
+            $sections[$id]['description'] = esc_html(trim($section['description']));
+        }
+        return $sections;
     }
 
     public function get_section_fields($section_id) {
@@ -355,15 +371,18 @@ class WPUUserMetas {
         $this->get_datas();
         wp_nonce_field('form-usermetas-' . $user->ID, 'nonce_form-usermetas');
         foreach ($this->sections as $id => $section) {
-            echo $this->display_section($user, $id, $section['name']);
+            echo $this->display_section($user, $id, $section);
         }
     }
 
-    public function display_section($user, $id, $name) {
+    public function display_section($user, $id, $section) {
         $content = '';
         $fields = $this->get_section_fields($id);
         if (!empty($fields)) {
-            $content .= '<h3>' . $name . '</h3>';
+            $content .= '<h3>' . $section['name'] . '</h3>';
+            if (!empty($section['description'])) {
+                $content .= wpautop(trim($section['description']));
+            }
             $content .= '<table class="form-table">';
             foreach ($fields as $id_field => $field) {
                 $content .= $this->display_field($user, $id_field, $field);
