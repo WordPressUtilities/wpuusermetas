@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.17.3
+Version: 0.18.O
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,8 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.17.3';
+    private $version = '0.18.O';
+    private $register_form_hook__name = 'woocommerce_register_form';
 
     public function __construct() {
 
@@ -56,11 +57,20 @@ class WPUUserMetas {
         add_action('woocommerce_checkout_update_order_meta', array(&$this, 'checkout_update_order_meta'));
 
         /* Register */
-        $register_form_hook__name = apply_filters('wpuusermetas_register_form_hook__name', 'woocommerce_register_form');
         $register_form_hook__priority = apply_filters('wpuusermetas_register_form_hook__priority', 10);
-        add_action($register_form_hook__name, array(&$this,
-            'woocommerce_register_form'
-        ), $register_form_hook__priority, 1);
+        $this->register_form_hook__name = apply_filters('wpuusermetas_register_form_hook__name', $this->register_form_hook__name);
+        $register_hooks = array(
+            $this->register_form_hook__name,
+            'woocommerce_register_form',
+            'woocommerce_register_form_start',
+            'woocommerce_register_form_end'
+        );
+        $register_hooks = array_unique($register_hooks);
+        foreach ($register_hooks as $hook_name) {
+            add_action($hook_name, array(&$this,
+                'woocommerce_register_form'
+            ), $register_form_hook__priority, 1);
+        }
         add_action('woocommerce_created_customer', array(&$this,
             'woocommerce_created_customer'
         ), 10, 1);
@@ -68,10 +78,20 @@ class WPUUserMetas {
     }
 
     public function woocommerce_register_form() {
+        $current_hook = current_action();
         foreach ($this->sections as $id => $section) {
             $fields = $this->get_section_fields($id);
             foreach ($fields as $id_field => $field) {
+                /* Not editable in register form */
                 if (!isset($field['register_editable']) || !$field['register_editable']) {
+                    continue;
+                }
+                /* Not on default hook */
+                if (!isset($field['register_editable_hook']) && $current_hook != $this->register_form_hook__name) {
+                    continue;
+                }
+                /* Custom hook but not correct target */
+                if (isset($field['register_editable_hook']) && $current_hook != $field['register_editable_hook']) {
                     continue;
                 }
                 echo $this->display_field(false, $id_field, $field, true);

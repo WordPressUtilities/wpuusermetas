@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"POT-Creation-Date: 2018-05-30 23:01+0200\n"
+"POT-Creation-Date: 2018-05-31 23:35+0200\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Darklg <darklg.blog@gmail.com>\n"
 "Language-Team: \n"
@@ -15,32 +15,32 @@ msgstr ""
 "X-Poedit-KeywordsList: __;_e\n"
 "X-Poedit-SearchPath-0: ../.\n"
 
-#: .././wpuusermetas.php:88
+#: .././wpuusermetas.php:108
 #, php-format
 msgid "The field \"%s\" is required!"
 msgstr "Le champ \"%s\" est requis !"
 
-#: .././wpuusermetas.php:225
+#: .././wpuusermetas.php:245
 msgid "No"
 msgstr "Non"
 
-#: .././wpuusermetas.php:225
+#: .././wpuusermetas.php:245
 msgid "Yes"
 msgstr "Oui"
 
-#: .././wpuusermetas.php:242
+#: .././wpuusermetas.php:262
 msgid "Metas"
 msgstr "Metas"
 
-#: .././wpuusermetas.php:272 .././wpuusermetas.php:280
+#: .././wpuusermetas.php:292 .././wpuusermetas.php:300
 msgid "Sorry, your nonce did not verify."
 msgstr "Désolé, votre nonce est invalide."
 
-#: .././wpuusermetas.php:424
+#: .././wpuusermetas.php:444
 msgid "Add a picture"
 msgstr "Ajouter une image"
 
-#: .././wpuusermetas.php:426
+#: .././wpuusermetas.php:446
 msgid "Change this picture"
 msgstr "Modifier cette image"
 
