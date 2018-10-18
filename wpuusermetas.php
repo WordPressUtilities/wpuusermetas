@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.18.O
+Version: 0.19.0
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.18.O';
+    private $version = '0.19.0';
     private $register_form_hook__name = 'woocommerce_register_form';
 
     public function __construct() {
@@ -307,14 +307,17 @@ class WPUUserMetas {
         $this->get_datas($user_id);
         foreach ($this->fields as $id_field => $field) {
             $old_value = get_user_meta($user_id, $id_field, 1);
+            $value = false;
             if ($field['type'] == 'checkbox') {
                 $value = isset($_POST[$prefix . $id_field]) ? '1' : '0';
             } elseif (isset($_POST[$prefix . $id_field])) {
                 $value = $this->validate_value($field, $_POST[$prefix . $id_field]);
             }
-            update_user_meta($user_id, $id_field, $value);
-            do_action('wpuusermetas_update_user_meta', $user_id, $id_field, $value, $old_value);
-            do_action('wpuusermetas_update_user_meta__' . $id_field, $user_id, $value, $old_value);
+            if ($value !== false) {
+                update_user_meta($user_id, $id_field, $value);
+                do_action('wpuusermetas_update_user_meta', $user_id, $id_field, $value, $old_value);
+                do_action('wpuusermetas_update_user_meta__' . $id_field, $user_id, $value, $old_value);
+            }
         }
     }
 
