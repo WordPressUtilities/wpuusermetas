@@ -17,7 +17,8 @@ Put the code below in your theme's functions.php file. Add new sections to your 
     add_filter( 'wpu_usermetas_sections', 'set_wpu_usermetas_sections', 10, 3 );
     function set_wpu_usermetas_sections( $sections ) {
         $sections['test-section'] = array(
-            'name' => 'Test Section'
+            'name' => 'Test Section',
+            'capability' => 'edit_pages'
         );
         return $sections;
     }

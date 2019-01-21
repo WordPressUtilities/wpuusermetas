@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.19.0
+Version: 0.20.0
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.19.0';
+    private $version = '0.20.0';
     private $register_form_hook__name = 'woocommerce_register_form';
 
     public function __construct() {
@@ -28,6 +28,12 @@ class WPUUserMetas {
 
     public function plugins_loaded() {
         load_plugin_textdomain('wpuusermetas', false, dirname(plugin_basename(__FILE__)) . '/lang/');
+
+        include dirname( __FILE__ ) . '/inc/WPUBaseUpdate/WPUBaseUpdate.php';
+        $this->settings_update = new \wpuusermetas\WPUBaseUpdate(
+            'WordPressUtilities',
+            'wpuusermetas',
+            $this->version);
 
         // Admin init
         if (is_admin()) {
@@ -204,6 +210,7 @@ class WPUUserMetas {
 
     public function get_datas($user_id = false) {
         $fields = apply_filters('wpu_usermetas_fields', array());
+        $this->sections = $this->get_sections();
         $this->fields = array();
         foreach ($fields as $id_field => $field) {
             $id_field = str_replace('-', '', $id_field);
@@ -245,12 +252,17 @@ class WPUUserMetas {
                 $field['datas'] = array(__('No'), __('Yes'));
             }
             if (is_numeric($user_id)) {
+                /* Store value */
                 $field['value'] = get_user_meta($user_id, $id_field, 1);
+                if (isset($this->sections[$field['section']]) && !user_can($user_id, $this->sections[$field['section']]['capability'])) {
+                    continue;
+                } else {
+                    $field['capability'] = $this->sections[$field['section']]['capability'];
+                }
             }
+
             $this->fields[$id_field] = $field;
         }
-
-        $this->sections = $this->get_sections();
 
         return $this->fields;
     }
@@ -269,6 +281,9 @@ class WPUUserMetas {
             $sections[$id]['name'] = esc_html(trim($section['name']));
             if (!isset($section['description'])) {
                 $section['description'] = '';
+            }
+            if (!isset($section['capability'])) {
+                $sections[$id]['capability'] = 'read';
             }
             $sections[$id]['description'] = esc_html(trim($section['description']));
         }
@@ -306,6 +321,9 @@ class WPUUserMetas {
     public function update_from_post($user_id, $prefix = '') {
         $this->get_datas($user_id);
         foreach ($this->fields as $id_field => $field) {
+            if (!user_can($user_id, $field['capability'])) {
+                continue;
+            }
             $old_value = get_user_meta($user_id, $id_field, 1);
             $value = false;
             if ($field['type'] == 'checkbox') {
@@ -375,6 +393,9 @@ class WPUUserMetas {
             wp_nonce_field('form-usermetas-' . $user->ID, 'nonce_form-usermetas');
         }
         foreach ($this->sections as $id => $section) {
+            if (!user_can($user, $section['capability'])) {
+                continue;
+            }
             $fields = $this->get_section_fields($id);
             foreach ($fields as $id_field => $field) {
                 if (!isset($field['user_editable']) || !$field['user_editable']) {
@@ -394,6 +415,9 @@ class WPUUserMetas {
         $this->get_datas();
         wp_nonce_field('form-usermetas-' . $user->ID, 'nonce_form-usermetas');
         foreach ($this->sections as $id => $section) {
+            if (!user_can($user, $section['capability'])) {
+                continue;
+            }
             echo $this->display_section($user, $id, $section);
         }
     }
