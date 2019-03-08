@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.20.0
+Version: 0.21.0
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.20.0';
+    private $version = '0.21.0';
     private $register_form_hook__name = 'woocommerce_register_form';
 
     public function __construct() {
@@ -29,7 +29,7 @@ class WPUUserMetas {
     public function plugins_loaded() {
         load_plugin_textdomain('wpuusermetas', false, dirname(plugin_basename(__FILE__)) . '/lang/');
 
-        include dirname( __FILE__ ) . '/inc/WPUBaseUpdate/WPUBaseUpdate.php';
+        include dirname(__FILE__) . '/inc/WPUBaseUpdate/WPUBaseUpdate.php';
         $this->settings_update = new \wpuusermetas\WPUBaseUpdate(
             'WordPressUtilities',
             'wpuusermetas',
@@ -226,17 +226,19 @@ class WPUUserMetas {
             if (!isset($field['required'])) {
                 $field['required'] = false;
             }
-            if (!isset($field['admin_column_sortable'])) {
-                $field['admin_column_sortable'] = false;
-            }
             if (!isset($field['checkout_editable'])) {
                 $field['checkout_editable'] = false;
             }
-            if (!isset($field['admin_searchable'])) {
-                $field['admin_searchable'] = false;
-            }
+            /* Admin column */
             if (!isset($field['admin_column'])) {
                 $field['admin_column'] = false;
+            }
+            if (!isset($field['admin_searchable'])) {
+                $field['admin_searchable'] = false;
+            } else {
+                if ($field['admin_searchable']) {
+                    $field['admin_column'] = true;
+                }
             }
             if (!isset($field['admin_column_sortable'])) {
                 $field['admin_column_sortable'] = false;
@@ -352,6 +354,8 @@ class WPUUserMetas {
                 }
             }
             break;
+        case 'post':
+        case 'taxonomy':
         case 'attachment':
             $new_value = !is_numeric($posted_value) ? false : $posted_value;
             break;
@@ -516,6 +520,48 @@ class WPUUserMetas {
                     $content .= '<label for="' . $prefix . $id_field . '">' . esc_html($field['label_checkbox']) . '</label>';
                 }
             }
+            break;
+
+        case 'post':
+            $lastposts = get_posts(array(
+                'posts_per_page' => 100,
+                'order' => 'ASC',
+                'orderby' => 'title',
+                'post_type' => (isset($field['post_type']) ? $field['post_type'] : 'post')
+            ));
+            if (!empty($lastposts)) {
+                $content .= '<select ' . $idname . '>';
+                if ($field['required']) {
+                    $content .= '<option value="" disabled selected style="display:none;">' . __('Select a value', 'wputaxometas') . '</option>';
+                } else {
+                    $content .= '<option value="0">' . __('Select a value', 'wputaxometas') . '</option>';
+                }
+                foreach ($lastposts as $post) {
+                    $content .= '<option value="' . $post->ID . '" ' . ($post->ID == $value ? 'selected="selected"' : '') . '>' . $post->post_title . '</option>';
+                }
+                $content .= '</select>';
+            }
+            break;
+
+        case 'taxonomy':
+            $allterms = get_terms(array(
+                'taxonomy' => (isset($field['taxonomy_type']) ? $field['taxonomy_type'] : 'category'),
+                'hide_empty' => false,
+                'orderby' => 'name'
+            ));
+            if (!empty($allterms)) {
+                $content .= '<select ' . $idname . '>';
+                if ($field['required']) {
+                    $content .= '<option value="" disabled selected style="display:none;">' . __('Select a value', 'wputaxometas') . '</option>';
+                } else {
+                    $content .= '<option value="0">' . __('Select a value', 'wputaxometas') . '</option>';
+                }
+                foreach ($allterms as $term) {
+                    $content .= '<option value="' . $term->term_id . '" ' . ($term->term_id == $value ? 'selected="selected"' : '') . '>' . $term->name . '</option>';
+                }
+                $content .= '</select>';
+            }
+
             break;
 
         case 'number':
