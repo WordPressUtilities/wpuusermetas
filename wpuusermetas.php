@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.21.0
+Version: 0.22.0
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.21.0';
+    private $version = '0.22.0';
     private $register_form_hook__name = 'woocommerce_register_form';
 
     public function __construct() {
@@ -226,6 +226,12 @@ class WPUUserMetas {
             if (!isset($field['required'])) {
                 $field['required'] = false;
             }
+            if (!isset($field['taxonomy_type'])) {
+                $field['taxonomy_type'] = 'category';
+            }
+            if (!isset($field['post_type'])) {
+                $field['post_type'] = 'post';
+            }
             if (!isset($field['checkout_editable'])) {
                 $field['checkout_editable'] = false;
             }
@@ -356,6 +362,7 @@ class WPUUserMetas {
             break;
         case 'post':
         case 'taxonomy':
+        case 'image':
         case 'attachment':
             $new_value = !is_numeric($posted_value) ? false : $posted_value;
             break;
@@ -527,7 +534,7 @@ class WPUUserMetas {
                 'posts_per_page' => 100,
                 'order' => 'ASC',
                 'orderby' => 'title',
-                'post_type' => (isset($field['post_type']) ? $field['post_type'] : 'post')
+                'post_type' => $field['post_type']
             ));
             if (!empty($lastposts)) {
                 $content .= '<select ' . $idname . '>';
@@ -545,7 +552,7 @@ class WPUUserMetas {
 
         case 'taxonomy':
             $allterms = get_terms(array(
-                'taxonomy' => (isset($field['taxonomy_type']) ? $field['taxonomy_type'] : 'category'),
+                'taxonomy' => $field['taxonomy_type'],
                 'hide_empty' => false,
                 'orderby' => 'name'
             ));
@@ -639,7 +646,7 @@ class WPUUserMetas {
                 continue;
             }
             if ($column_name == $id) {
-                return get_user_meta($user_id, $id, 1);
+                return $this->get_user_data($user_id, $id, $field);
             }
         }
         return $val;
@@ -664,10 +671,31 @@ class WPUUserMetas {
                 continue;
             }
             if ($query->get('orderby') == $id) {
-                $query->set('orderby', $field['type'] == 'number' ? 'meta_value_num' : 'meta_value');
+                $query->set('orderby', in_array($field['type'], array('number', 'post', 'taxonomy', 'attachment', 'image')) ? 'meta_value_num' : 'meta_value');
                 $query->set('meta_key', $id);
             }
         }
+    }
+
+    public function get_user_data($user_id, $id, $field) {
+        $value = get_user_meta($user_id, $id, 1);
+        if ($field['type'] == 'post') {
+            $tmp_value = get_the_title($value);
+            $value = $tmp_value ? $tmp_value : $value;
+        }
+        if ($field['type'] == 'taxonomy') {
+            $tmp_value = get_term_by('id', $value, $field['taxonomy_type']);
+            if (!is_wp_error($tmp_value) && $tmp_value->name) {
+                $value = $tmp_value->name;
+            }
+        }
+        if ($field['type'] == 'attachment') {
+            $tmp_value = wp_get_attachment_image_src($value, 'thumbnail');
+            if (is_array($tmp_value) && isset($tmp_value[0])) {
+                $value = '<img height="50" width="50" src="' . $tmp_value[0] . '" alt="" />';
+            }
+        }
+        return $value;
     }
 
 }
