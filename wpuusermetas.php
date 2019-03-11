@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.22.0
+Version: 0.23.0
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.22.0';
+    private $version = '0.23.0';
     private $register_form_hook__name = 'woocommerce_register_form';
 
     public function __construct() {
@@ -174,6 +174,9 @@ class WPUUserMetas {
         add_action('pre_user_query', array(&$this,
             'user_extended_search'
         ));
+        add_action('pre_user_query', array(&$this,
+            'user_extended_filter'
+        ));
 
         // Load assets
         add_action('admin_enqueue_scripts', array(&$this,
@@ -243,6 +246,13 @@ class WPUUserMetas {
                 $field['admin_searchable'] = false;
             } else {
                 if ($field['admin_searchable']) {
+                    $field['admin_column'] = true;
+                }
+            }
+            if (!isset($field['admin_filterable'])) {
+                $field['admin_filterable'] = false;
+            } else {
+                if ($field['admin_filterable']) {
                     $field['admin_column'] = true;
                 }
             }
@@ -627,6 +637,37 @@ class WPUUserMetas {
     }
 
     /* ----------------------------------------------------------
+      Filter
+    ---------------------------------------------------------- */
+
+    public function user_extended_filter($q) {
+        global $wpdb;
+
+        /* Avoid special cases */
+        if (!is_admin()) {
+            return;
+        }
+
+        if (!isset($_GET['meta_key']) || !isset($_GET['meta_value'])) {
+            return;
+        }
+
+        /* Choose searchable fields */
+        $search_fields = array();
+        foreach ($this->fields as $field_id => $field) {
+            if (!$field['admin_filterable']) {
+                continue;
+            }
+            if ($field_id == $_GET['meta_key']) {
+                $user_with_meta = $wpdb->get_col($wpdb->prepare("SELECT DISTINCT user_id FROM $wpdb->usermeta WHERE meta_key IN(%s) AND meta_value = %s", $field_id, $_GET['meta_value']));
+                if (!empty($user_with_meta)) {
+                    $q->query_where .= ' AND ID IN(' . implode(",", $user_with_meta) . ')';
+                }
+            }
+        }
+    }
+
+    /* ----------------------------------------------------------
       Sort columns
     ---------------------------------------------------------- */
 
@@ -677,8 +718,9 @@ class WPUUserMetas {
         }
     }
 
-    public function get_user_data($user_id, $id, $field) {
-        $value = get_user_meta($user_id, $id, 1);
+    public function get_user_data($user_id, $field_id, $field) {
+        $value = get_user_meta($user_id, $field_id, 1);
+        $raw_value = $value;
         if ($field['type'] == 'post') {
             $tmp_value = get_the_title($value);
             $value = $tmp_value ? $tmp_value : $value;
@@ -694,6 +736,9 @@ class WPUUserMetas {
             if (is_array($tmp_value) && isset($tmp_value[0])) {
                 $value = '<img height="50" width="50" src="' . $tmp_value[0] . '" alt="" />';
             }
+        }
+        if ($value && $field['admin_filterable']) {
+            $value = '<a href="' . admin_url('users.php?meta_key=' . urlencode($field_id) . '&meta_value=' . urlencode($raw_value)) . '">' . $value . '</a>';
         }
         return $value;
     }
