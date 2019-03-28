@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.23.0
+Version: 0.23.1
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.23.0';
+    private $version = '0.23.1';
     private $register_form_hook__name = 'woocommerce_register_form';
 
     public function __construct() {
@@ -201,7 +201,7 @@ class WPUUserMetas {
 
     public function load_assets() {
         $screen = get_current_screen();
-        if ($screen->base != 'profile') {
+        if ($screen->base != 'profile' && $screen->base != 'user-edit') {
             return false;
         }
         wp_enqueue_media();
