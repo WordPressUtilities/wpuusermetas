@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.23.1
+Version: 0.24.0
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.23.1';
+    private $version = '0.24.0';
     private $register_form_hook__name = 'woocommerce_register_form';
 
     public function __construct() {
@@ -55,7 +55,7 @@ class WPUUserMetas {
             ));
         }
         add_action('woocommerce_save_account_details', array(&$this,
-            'woocommerce_save_account_details'
+            'update_user_meta'
         ), 50, 1);
 
         /* Checkout */
@@ -162,6 +162,9 @@ class WPUUserMetas {
         add_action('show_user_profile', array(&$this,
             'display_form'
         ));
+        add_action('user_new_form', array(&$this,
+            'display_form'
+        ));
         add_action('edit_user_profile', array(&$this,
             'display_form'
         ));
@@ -169,6 +172,9 @@ class WPUUserMetas {
             'update_user_meta'
         ));
         add_action('edit_user_profile_update', array(&$this,
+            'update_user_meta'
+        ));
+        add_action('user_register', array(&$this,
             'update_user_meta'
         ));
         add_action('pre_user_query', array(&$this,
@@ -201,11 +207,11 @@ class WPUUserMetas {
 
     public function load_assets() {
         $screen = get_current_screen();
-        if ($screen->base != 'profile' && $screen->base != 'user-edit') {
+        if (!in_array($screen->base, array('profile', 'user-edit', 'user'))) {
             return false;
         }
         wp_enqueue_media();
-        wp_enqueue_script('wpuusermetas_scripts', plugins_url('/assets/global.js', __FILE__), array(), $this->version);
+        wp_enqueue_script('wpuusermetas_scripts', plugins_url('assets/global.js', __FILE__), array(), $this->version);
         wp_enqueue_style('wpuusermetas_style', plugins_url('assets/style.css', __FILE__));
     }
 
@@ -320,16 +326,8 @@ class WPUUserMetas {
 
     /* Update */
 
-    public function woocommerce_save_account_details($user_id) {
-        if (!isset($_POST['nonce_form-usermetas']) || !wp_verify_nonce($_POST['nonce_form-usermetas'], 'form-usermetas-' . $user_id)) {
-            echo __('Sorry, your nonce did not verify.', 'wpuusermetas');
-            exit;
-        }
-        $this->update_from_post($user_id);
-    }
-
     public function update_user_meta($user_id) {
-        if (!isset($_POST['nonce_form-usermetas']) || !wp_verify_nonce($_POST['nonce_form-usermetas'], 'form-usermetas-' . $user_id)) {
+        if (!isset($_POST['nonce_form-usermetas']) || !wp_verify_nonce($_POST['nonce_form-usermetas'], 'form-usermetas')) {
             echo __('Sorry, your nonce did not verify.', 'wpuusermetas');
             exit;
         }
@@ -411,7 +409,7 @@ class WPUUserMetas {
         $this->get_datas($user->ID);
         /* Nonce on one only */
         if ($default_filter) {
-            wp_nonce_field('form-usermetas-' . $user->ID, 'nonce_form-usermetas');
+            wp_nonce_field('form-usermetas', 'nonce_form-usermetas');
         }
         foreach ($this->sections as $id => $section) {
             if (!user_can($user, $section['capability'])) {
@@ -434,20 +432,36 @@ class WPUUserMetas {
 
     public function display_form($user) {
         $this->get_datas();
-        wp_nonce_field('form-usermetas-' . $user->ID, 'nonce_form-usermetas');
+        wp_nonce_field('form-usermetas', 'nonce_form-usermetas');
+        $capabilities = array();
         foreach ($this->sections as $id => $section) {
-            if (!user_can($user, $section['capability'])) {
+            $capabilities[$section['capability']] = array();
+            if (!is_string($user) && !user_can($user, $section['capability'])) {
                 continue;
             }
+
             echo $this->display_section($user, $id, $section);
         }
+
+        global $wp_roles;
+
+        foreach ($capabilities as $capability_id => $capability) {
+            foreach ($wp_roles->roles as $key => $role) {
+                if (array_key_exists($capability_id, $role['capabilities'])) {
+                    $capabilities[$capability_id][] = $key;
+                }
+            }
+        }
+
+        echo '<script>var wpucapabilities = ' . json_encode($capabilities) . '</script>';
+
     }
 
     public function display_section($user, $id, $section) {
         $content = '';
         $fields = $this->get_section_fields($id);
         if (!empty($fields)) {
-            $content .= '<h3>' . $section['name'] . '</h3>';
+            $content .= '<div class="wpuusermetas-section" data-capability="' . $section['capability'] . '"><h3>' . $section['name'] . '</h3>';
             if (!empty($section['description'])) {
                 $content .= wpautop(trim($section['description']));
             }
@@ -455,7 +469,7 @@ class WPUUserMetas {
             foreach ($fields as $id_field => $field) {
                 $content .= $this->display_field($user, $id_field, $field);
             }
-            $content .= '</table>';
+            $content .= '</table></div>';
         }
         return $content;
     }

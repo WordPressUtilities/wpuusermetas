@@ -3,7 +3,39 @@
 
 jQuery(document).ready(function() {
     wputh_usermetas_set_media();
+    wputh_usermetas_set_roles();
 });
+
+/* ----------------------------------------------------------
+  Set role
+---------------------------------------------------------- */
+
+var wputh_usermetas_set_roles = function() {
+
+    var $select_role = jQuery('select[name="role"]');
+
+    function set_sections() {
+
+        /* Hide all sections */
+        var $sections = jQuery('.wpuusermetas-section');
+        $sections.hide();
+
+        /* Get current role */
+        var role = $select_role.val();
+
+        /* Display sections which have capacities compatible with this role */
+        $sections.each(function() {
+            var $this = jQuery(this),
+                capability = $this.attr('data-capability');
+            if (wpucapabilities[capability].indexOf(role) > -1) {
+                $this.show();
+            }
+        })
+    }
+
+    $select_role.on('change', set_sections);
+    set_sections();
+}
 
 /* ----------------------------------------------------------
   Upload files
