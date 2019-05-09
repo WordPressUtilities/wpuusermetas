@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.24.0
+Version: 0.24.1
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.24.0';
+    private $version = '0.24.1';
     private $register_form_hook__name = 'woocommerce_register_form';
 
     public function __construct() {
@@ -432,14 +432,16 @@ class WPUUserMetas {
 
     public function display_form($user) {
         $this->get_datas();
+
+        $screen = get_current_screen();
+        $is_user_edit = ($screen->base == 'profile');
         wp_nonce_field('form-usermetas', 'nonce_form-usermetas');
         $capabilities = array();
         foreach ($this->sections as $id => $section) {
             $capabilities[$section['capability']] = array();
-            if (!is_string($user) && !user_can($user, $section['capability'])) {
+            if ($is_user_edit && !current_user_can($section['capability'])) {
                 continue;
             }
-
             echo $this->display_section($user, $id, $section);
         }
 
@@ -453,7 +455,9 @@ class WPUUserMetas {
             }
         }
 
-        echo '<script>var wpucapabilities = ' . json_encode($capabilities) . '</script>';
+        if (!$is_user_edit) {
+            echo '<script>var wpucapabilities = ' . json_encode($capabilities) . '</script>';
+        }
 
     }
 

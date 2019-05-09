@@ -12,7 +12,15 @@ jQuery(document).ready(function() {
 
 var wputh_usermetas_set_roles = function() {
 
+    if(typeof wpucapabilities == 'undefined'){
+        return;
+    }
+
     var $select_role = jQuery('select[name="role"]');
+
+    if($select_role.length < 1){
+        return;
+    }
 
     function set_sections() {
 
