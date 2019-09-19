@@ -4,7 +4,7 @@
 Plugin Name: WPU User Metas
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Simple admin for user metas
-Version: 0.24.2
+Version: 0.24.3
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,7 +15,7 @@ Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fiel
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.24.2';
+    private $version = '0.24.3';
     private $register_form_hook__name = 'woocommerce_register_form';
 
     public function __construct() {
@@ -143,9 +143,6 @@ class WPUUserMetas {
         $new_key = str_replace('account_', '', $key);
         if (array_key_exists($new_key, $this->fields) && $this->fields[$new_key]['checkout_editable']) {
             $field_details = $this->fields[$new_key];
-            if (isset($field_details['default_value'])) {
-                $field_details['value'] = $field_details['default_value'];
-            }
             $field = $this->display_field(false, $new_key, $field_details, true, 'account_');
         }
         return $field;
@@ -327,7 +324,7 @@ class WPUUserMetas {
     /* Update */
 
     public function update_user_meta($user_id) {
-        if (!isset($_POST['email'])) {
+        if (!isset($_POST['email']) && !isset($_POST['account_email'])) {
             return;
         }
         if (!isset($_POST['nonce_form-usermetas']) || !wp_verify_nonce($_POST['nonce_form-usermetas'], 'form-usermetas')) {
@@ -486,6 +483,10 @@ class WPUUserMetas {
         // Set vars
         $idname = ' id="' . $prefix . $id_field . '" name="' . $prefix . $id_field . '" placeholder="' . esc_attr($field['name']) . '" ';
         $value = isset($field['value']) ? $field['value'] : '';
+        if (isset($field['default_value']) && !$value && !is_user_logged_in()) {
+            $value = $field['default_value'];
+        }
+
         if (is_object($user) && !$value) {
             $value = get_the_author_meta($id_field, $user->ID);
         }
