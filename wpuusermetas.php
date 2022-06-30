@@ -2,28 +2,26 @@
 
 /*
 Plugin Name: WPU User Metas
-Plugin URI: http://github.com/Darklg/WPUtilities
+Plugin URI: https://github.com/WordPressUtilities/wpuusermetas
 Description: Simple admin for user metas
-Version: 0.24.3
+Version: 0.24.4
 Author: Darklg
-Author URI: http://darklg.me/
+Author URI: https://darklg.me/
 License: MIT License
-License URI: http://opensource.org/licenses/MIT
-Based On: http://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fields/
+License URI: https://opensource.org/licenses/MIT
+Based On: https://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fields/
 */
 
 class WPUUserMetas {
     private $sections = array();
     private $fields = array();
-    private $version = '0.24.3';
+    private $version = '0.24.4';
     private $register_form_hook__name = 'woocommerce_register_form';
 
     public function __construct() {
-
         add_action('plugins_loaded', array(&$this,
             'plugins_loaded'
         ));
-
     }
 
     public function plugins_loaded() {
@@ -361,6 +359,7 @@ class WPUUserMetas {
         $new_value = isset($field['value']) ? $field['value'] : '';
         switch ($field['type']) {
         case 'image':
+            $new_value = '';
             if (is_numeric($posted_value)) {
                 $img_value = wp_get_attachment_image_src($posted_value);
                 if (isset($img_value[0])) {
