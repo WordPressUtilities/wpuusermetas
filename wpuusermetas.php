@@ -1,17 +1,19 @@
 <?php
+defined('ABSPATH') || die;
 
 /*
 Plugin Name: WPU User Metas
 Plugin URI: https://github.com/WordPressUtilities/wpuusermetas
 Update URI: https://github.com/WordPressUtilities/wpuusermetas
 Description: Simple admin for user metas
-Version: 0.24.5
+Version: 0.25.0
 Author: Darklg
 Author URI: https://darklg.me/
 Text Domain: wpuusermetas
 Domain Path: /lang
-Requires at least: 6.0
+Requires at least: 6.2
 Requires PHP: 8.0
+Network: Optional
 License: MIT License
 License URI: https://opensource.org/licenses/MIT
 Based On: https://blog.ftwr.co.uk/archives/2009/07/19/adding-extra-user-meta-fields/
@@ -22,7 +24,7 @@ class WPUUserMetas {
     public $settings_update;
     private $sections = array();
     private $fields = array();
-    private $version = '0.24.5';
+    private $version = '0.25.0';
     private $register_form_hook__name = 'woocommerce_register_form';
 
     public function __construct() {
@@ -39,7 +41,7 @@ class WPUUserMetas {
         }
         $this->plugin_description = __('Simple admin for user metas', 'wpuusermetas');
 
-        include dirname(__FILE__) . '/inc/WPUBaseUpdate/WPUBaseUpdate.php';
+        require_once __DIR__ . '/inc/WPUBaseUpdate/WPUBaseUpdate.php';
         $this->settings_update = new \wpuusermetas\WPUBaseUpdate(
             'WordPressUtilities',
             'wpuusermetas',

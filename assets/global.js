@@ -1,4 +1,3 @@
-/*global jQuery:false, wp:false */
 'use strict';
 
 jQuery(document).ready(function() {
@@ -79,7 +78,7 @@ var wputh_usermetas_set_media = function() {
         unset_media(jQuery(this));
     });
 
-    jQuery('body').on('unset_media', '.wpuusermetas_add_media', function(e) {
+    jQuery('body').on('unset_media', '.wpuusermetas_add_media', function() {
         unset_media(jQuery(this));
     });
 

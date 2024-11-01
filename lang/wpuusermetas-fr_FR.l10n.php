@@ -1,0 +1,2 @@
+<?php
+return ['domain'=>NULL,'plural-forms'=>NULL,'messages'=>['Simple admin for user metas'=>'Admin simple pour des metas utilisateurs.','The field "%s" is required!'=>'Le champ "%s" est requis !','No'=>'Non','Yes'=>'Oui','Metas'=>'Metas','Sorry, your nonce did not verify.'=>'Désolé, votre nonce est invalide.','Add a picture'=>'Ajouter une image','Change this picture'=>'Modifier cette image','Select a value'=>'Sélectionner une valeur'],'language'=>'fr_FR','x-generator'=>'Poedit 3.3'];

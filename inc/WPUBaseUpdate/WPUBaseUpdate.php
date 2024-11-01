@@ -4,7 +4,7 @@ namespace wpuusermetas;
 /*
 Class Name: WPU Base Update
 Description: A class to handle plugin update from github
-Version: 0.4.3
+Version: 0.5.0
 Class URI: https://github.com/WordPressUtilities/wpubaseplugin
 Author: Darklg
 Author URI: https://darklg.me/
@@ -12,6 +12,8 @@ License: MIT License
 License URI: https://opensource.org/licenses/MIT
 Thanks: https://gist.github.com/danielbachhuber/7684646
 */
+
+defined('ABSPATH') || die;
 
 class WPUBaseUpdate {
 
@@ -24,6 +26,7 @@ class WPUBaseUpdate {
     private $plugin_id;
     private $plugin_dir;
     private $details;
+    private $is_tracked = false;
 
     public function __construct($github_username = false, $github_project = false, $current_version = false, $details = array()) {
         $this->init($github_username, $github_project, $current_version, $details);
@@ -45,9 +48,7 @@ class WPUBaseUpdate {
         $this->plugin_dir = (defined('WP_PLUGIN_DIR') ? WP_PLUGIN_DIR : WP_CONTENT_DIR . '/plugins') . '/' . $this->plugin_id;
 
         $gitpath = dirname($this->plugin_dir) . '/.git';
-        if (is_dir($gitpath) || file_exists($gitpath)) {
-            return;
-        }
+        $this->is_tracked = (is_dir($gitpath) || file_exists($gitpath));
 
         if (!is_array($details)) {
             $details = array();
@@ -123,9 +124,19 @@ class WPUBaseUpdate {
                 'sections' => array()
             );
 
+            /* Disable download link if plugin is tracked */
+            if ($this->is_tracked) {
+                $plugin_info['trunk'] = '';
+                $plugin_info['download_link'] = '';
+                $plugin_info['package'] = '';
+            }
+
             /* Fetch plugin data */
             $plugin_data = array();
             if (file_exists($this->plugin_dir)) {
+                if (!function_exists('get_plugin_data')) {
+                    require_once ABSPATH . 'wp-admin/includes/plugin.php';
+                }
                 $plugin_data = get_plugin_data($this->plugin_dir);
             }
 
