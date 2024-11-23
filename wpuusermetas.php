@@ -6,7 +6,7 @@ Plugin Name: WPU User Metas
 Plugin URI: https://github.com/WordPressUtilities/wpuusermetas
 Update URI: https://github.com/WordPressUtilities/wpuusermetas
 Description: Simple admin for user metas
-Version: 0.25.0
+Version: 0.25.1
 Author: Darklg
 Author URI: https://darklg.me/
 Text Domain: wpuusermetas
@@ -24,22 +24,27 @@ class WPUUserMetas {
     public $settings_update;
     private $sections = array();
     private $fields = array();
-    private $version = '0.25.0';
+    private $version = '0.25.1';
     private $register_form_hook__name = 'woocommerce_register_form';
 
     public function __construct() {
         add_action('plugins_loaded', array(&$this,
             'plugins_loaded'
         ));
+        add_action('after_setup_theme', array(&$this,
+            'load_translation'
+        ));
     }
 
-    public function plugins_loaded() {
-
+    public function load_translation() {
         $lang_dir = dirname(plugin_basename(__FILE__)) . '/lang/';
         if (!load_plugin_textdomain('wpuusermetas', false, $lang_dir)) {
             load_muplugin_textdomain('wpuusermetas', $lang_dir);
         }
         $this->plugin_description = __('Simple admin for user metas', 'wpuusermetas');
+    }
+
+    public function plugins_loaded() {
 
         require_once __DIR__ . '/inc/WPUBaseUpdate/WPUBaseUpdate.php';
         $this->settings_update = new \wpuusermetas\WPUBaseUpdate(
