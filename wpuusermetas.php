@@ -6,7 +6,7 @@ Plugin Name: WPU User Metas
 Plugin URI: https://github.com/WordPressUtilities/wpuusermetas
 Update URI: https://github.com/WordPressUtilities/wpuusermetas
 Description: Simple admin for user metas
-Version: 0.25.2
+Version: 0.25.3
 Author: Darklg
 Author URI: https://darklg.me/
 Text Domain: wpuusermetas
@@ -24,12 +24,15 @@ class WPUUserMetas {
     public $settings_update;
     private $sections = array();
     private $fields = array();
-    private $version = '0.25.2';
+    private $version = '0.25.3';
     private $register_form_hook__name = 'woocommerce_register_form';
 
     public function __construct() {
         add_action('plugins_loaded', array(&$this,
             'plugins_loaded'
+        ));
+        add_action('init', array(&$this,
+            'load_custom_hooks'
         ));
         add_action('after_setup_theme', array(&$this,
             'load_translation'
@@ -57,24 +60,6 @@ class WPUUserMetas {
             $this->admin_hooks();
         }
 
-        $this->fields = $this->get_datas();
-        $hooks_user_editable = array('woocommerce_edit_account_form' => 'woocommerce_edit_account_form');
-        foreach ($this->fields as $field) {
-            if (isset($field['user_editable_hook'])) {
-                $hooks_user_editable[$field['user_editable_hook']] = $field['user_editable_hook'];
-            }
-        }
-
-        /* Account */
-        foreach ($hooks_user_editable as $hook_user_editable) {
-            add_action($hook_user_editable, array(&$this,
-                'woocommerce_edit_account_form'
-            ));
-        }
-        add_action('woocommerce_save_account_details', array(&$this,
-            'update_user_meta'
-        ), 50, 1);
-
         /* Checkout */
         add_filter('woocommerce_checkout_fields', array(&$this, 'woocommerce_checkout_fields'), 10, 1);
         add_action('woocommerce_checkout_update_order_meta', array(&$this, 'checkout_update_order_meta'));
@@ -98,6 +83,26 @@ class WPUUserMetas {
             'woocommerce_created_customer'
         ), 10, 1);
         add_action('woocommerce_register_post', array(&$this, 'woocommerce_register_post'), 10, 3);
+    }
+
+    function load_custom_hooks() {
+        $this->fields = $this->get_datas();
+        $hooks_user_editable = array('woocommerce_edit_account_form' => 'woocommerce_edit_account_form');
+        foreach ($this->fields as $field) {
+            if (isset($field['user_editable_hook'])) {
+                $hooks_user_editable[$field['user_editable_hook']] = $field['user_editable_hook'];
+            }
+        }
+
+        /* Account */
+        foreach ($hooks_user_editable as $hook_user_editable) {
+            add_action($hook_user_editable, array(&$this,
+                'woocommerce_edit_account_form'
+            ));
+        }
+        add_action('woocommerce_save_account_details', array(&$this,
+            'update_user_meta'
+        ), 50, 1);
     }
 
     public function woocommerce_register_form() {
